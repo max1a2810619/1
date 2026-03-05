@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股終極戰情室 - 最新收盤價版</title>
+    <title>台股終極戰情室 V2.5</title>
     <style>
         :root { --bg: #0b0e14; --card: #161b22; --accent: #3b82f6; --red: #f85149; --green: #3fb950; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, sans-serif; margin: 0; padding: 12px; }
+        body { background: var(--bg); color: #c9d1d9; font-family: sans-serif; margin: 0; padding: 12px; }
         .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
         
+        /* 標題與版本 */
         .header { text-align: center; background: #111827; padding: 15px; border-radius: 12px; border: 1px solid var(--border); }
-        .date-badge { background: #1f6feb; color: white; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 5px; display: inline-block; }
+        .ver-tag { font-size: 10px; color: #58a6ff; display: block; margin-top: 5px; }
 
-        .rating-card { background: linear-gradient(#111827, #111827) padding-box, linear-gradient(to right, #ef4444, #eab308, #22c55e) border-box; border: 2px solid transparent; border-radius: 12px; padding: 15px; }
+        /* 籌碼數據區 */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
         .label { font-size: 11px; color: #8b949e; margin-bottom: 5px; }
@@ -20,19 +21,19 @@
         .up { color: var(--red); } .down { color: var(--green); }
 
         /* 🔥 選股卡片：強烈顯出「最新收盤價」 */
-        .section-title { font-size: 16px; font-weight: bold; color: var(--accent); margin-top: 10px; border-left: 4px solid var(--accent); padding-left: 10px; }
-        .pick-card { background: #0d1117; border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
+        .section-title { font-size: 16px; font-weight: bold; color: var(--accent); border-left: 4px solid var(--accent); padding-left: 10px; margin: 10px 0; }
+        .pick-card { background: #0d1117; border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 4px solid var(--accent); }
         
-        .pick-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .pick-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         .pick-name { font-size: 20px; font-weight: bold; color: white; }
-        .potential-badge { background: #238636; color: white; padding: 2px 10px; border-radius: 5px; font-size: 13px; font-weight: bold; }
+        .potential-badge { background: #238636; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
 
-        /* 💵 收盤價展示區 */
-        .price-display-box { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; text-align: center; background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px; }
-        .price-item { display: flex; flex-direction: column; }
-        .price-label { font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
-        .price-num { font-size: 20px; font-weight: bold; }
-        .main-price { color: #f8fafc; font-size: 22px; }
+        /* 💵 最新收盤價展示 (大字顯示) */
+        .main-price-row { background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 15px; display: flex; justify-content: space-around; align-items: center; margin-bottom: 15px; }
+        .price-box { text-align: center; }
+        .price-box label { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .price-big { font-size: 26px; font-weight: bold; color: #ffffff; }
+        .price-target { font-size: 20px; font-weight: bold; color: var(--red); }
 
         .reason-box { font-size: 13px; color: #cbd5e1; border-top: 1px solid #30363d; padding-top: 10px; line-height: 1.6; }
     </style>
@@ -41,16 +42,8 @@
 
 <div class="container">
     <div class="header">
-        <div style="font-size: 22px; font-weight: bold;">📊 台股終極戰情儀表板</div>
-        <div id="display-date" class="date-badge">載入中...</div>
-    </div>
-
-    <div class="rating-card">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span style="font-weight: bold;">🤖 AI 策略解析</span>
-            <span id="ai-status" style="background:var(--red); padding: 2px 8px; border-radius: 4px; font-size:12px;">偏多警戒</span>
-        </div>
-        <div id="ai-comment" style="font-size: 13px;">正在同步 03/05 籌碼日報與最新行情...</div>
+        <div style="font-size: 22px; font-weight: bold;">📊 台股終極戰情室</div>
+        <span class="ver-tag">Version 2.5 - 最新收盤價校準版</span>
     </div>
 
     <div class="grid">
@@ -60,20 +53,17 @@
         <div class="card"><div class="label">三大法人買賣超</div><div id="val-buy" class="value down">- 458 億</div></div>
     </div>
 
-    <div class="section-title">🚀 潛力選股 (含最新收盤價與空間)</div>
+    <div class="section-title">🔥 深度選股 (含最新收盤價)</div>
     <div id="news-picks">
         </div>
-
 </div>
 
 <script>
-    document.getElementById('display-date').innerText = new Date().toLocaleDateString('zh-TW', {month:'short', day:'numeric', weekday:'short'});
-
-    // 🏆 精選低基期標的 (校準 03/05 價格)
+    // 🏆 精選標的 (手動校準 03/05 最新收盤價)
     const stockPicks = [
-        { name: "雙鴻 (3324)", current: "845", target: "980", eps: "28.5", reason: "AI 水冷板唯一供應商。目前股價守穩季線，離目標價仍有補漲空間。" },
-        { name: "辛耘 (3583)", current: "442", target: "520", eps: "16.8", reason: "台積電 CoWoS 擴產直接受惠者。訂單能見度極高，法人籌碼穩定。" },
-        { name: "聯亞 (3081)", current: "312", target: "360", eps: "8.5", reason: "矽光子磊晶龍頭。美系雲端大廠光學專案 Q4 進入放量期，具備跳躍成長潛力。" }
+        { name: "雙鴻 (3324)", current: "845", target: "980", eps: "28.5", reason: "AI 水冷模組龍頭，目前股價回測月線守穩，距離目標價空間仍大。" },
+        { name: "辛耘 (3583)", current: "442", target: "520", eps: "16.8", reason: "CoWoS 濕製程設備領先者，台積電擴廠直接受惠股，籌碼面極度穩定。" },
+        { name: "聯亞 (3081)", current: "312", target: "360", eps: "8.5", reason: "矽光子磊晶技術，美系大廠光學組件訂單啟動，Q4 獲利具備翻倍空間。" }
     ];
 
     function renderPicks() {
@@ -84,22 +74,23 @@
                 <div class="pick-card">
                     <div class="pick-header">
                         <span class="pick-name">${p.name}</span>
-                        <span class="potential-badge">空間 +${potential}%</span>
+                        <span class="potential-badge">預期空間 +${potential}%</span>
                     </div>
                     
-                    <div class="price-display-box">
-                        <div class="price-item">
-                            <span class="price-label">最新收盤價</span>
-                            <span class="price-num main-price">${p.current}</span>
+                    <div class="main-price-row">
+                        <div class="price-box">
+                            <label>最新收盤價</label>
+                            <span class="price-big">${p.current}</span>
                         </div>
-                        <div class="price-item">
-                            <span class="price-label">🎯 目標價</span>
-                            <span class="price-num up">${p.target}</span>
+                        <div style="font-size: 20px; color: #30363d;">➔</div>
+                        <div class="price-box">
+                            <label>🎯 目標價</label>
+                            <span class="price-target">${p.target}</span>
                         </div>
-                        <div class="price-item">
-                            <span class="price-label">2026E EPS</span>
-                            <span class="price-num" style="color:#eab308;">${p.eps}</span>
-                        </div>
+                    </div>
+
+                    <div style="font-size: 12px; margin-bottom: 10px; text-align: center;">
+                        <span style="color:#8b949e;">2026 預估 EPS:</span> <b style="color:#eab308;">${p.eps} 元</b>
                     </div>
 
                     <div class="reason-box"><b>買進理由：</b>${p.reason}</div>
@@ -109,23 +100,20 @@
     }
     renderPicks();
 
-    // 更新 AI 評語邏輯 (保持穩定)
+    // 保留原本的 API 自動抓取邏輯
     async function fetchAllData() {
         const proxy = "https://api.allorigins.win/get?url=";
-        const start = new Date(); start.setDate(start.getDate() - 7);
-        const dateStr = start.toISOString().split('T')[0];
-
+        const d = new Date(); d.setDate(d.getDate() - 7);
+        const dateStr = d.toISOString().split('T')[0];
         try {
-            const [futRes] = await Promise.all([
-                fetch(proxy + encodeURIComponent(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanFuturesInstitutionalInvestors&data_id=TX&start_date=${dateStr}`)).then(r => r.json())
-            ]);
+            const futRes = await fetch(proxy + encodeURIComponent(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanFuturesInstitutionalInvestors&data_id=TX&start_date=${dateStr}`)).then(r => r.json());
             const futData = JSON.parse(futRes.contents).data;
             if (futData && futData.length > 0) {
                 const latest = futData.filter(d => d.name.includes('外資')).pop();
-                document.getElementById('ai-comment').innerText = `數據更新日：${latest.date}。外資空單壓頂，但個股仍有表現機會。`;
+                document.getElementById('display-date').innerText = `數據日：${latest.date}`;
             }
         } catch (e) {
-            document.getElementById('ai-comment').innerText = "⚠️ 資料庫同步中，顯示 03/05 籌碼快照數據。";
+            document.getElementById('display-date').innerText = "顯示 03/05 籌碼快照數據";
         }
     }
     fetchAllData();
