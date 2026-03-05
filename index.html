@@ -3,131 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>台股全自動戰情室 - 穩定強連版</title>
+  <title>台股全自動監控 - 深度偵錯版</title>
   <style>
     :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --red: #f85149; --green: #3fb950; --border: #30363d; }
-    body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, sans-serif; margin: 0; padding: 12px; }
+    body { background: var(--bg); color: #c9d1d9; font-family: sans-serif; margin: 0; padding: 12px; }
     .container { max-width: 500px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 20px; }
-    
-    /* 狀態顯示區 */
-    .status-area { background: #111827; border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin-bottom: 15px; }
-    .status-msg { font-size: 13px; margin-bottom: 10px; color: #8b949e; }
-    
-    /* 核心數據卡片 */
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
     .label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
     .value { font-size: 18px; font-weight: bold; }
+    .up { color: var(--red); } .down { color: var(--green); }
     
-    /* 按鈕 */
-    .refresh-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    .refresh-btn:disabled { background: #30363d; color: #8b949e; }
-
-    .up { color: var(--red); } .down { color: var(--green); } .neutral { color: #eab308; }
-    .hidden { display: none; }
+    /* 偵錯日誌區 */
+    .debug-log { background: #000; color: #0f0; font-family: monospace; font-size: 10px; padding: 10px; margin-top: 20px; border-radius: 5px; height: 100px; overflow-y: auto; border: 1px solid #333; }
+    .refresh-btn { width: 100%; padding: 12px; background: #1f6feb; color: white; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header">
-    <div style="font-size: 20px; font-weight: bold;">🦅 終極監控中心</div>
-    <div id="data-date" style="font-size: 11px; color: #8b949e; margin-top: 5px;">準備連線中...</div>
+    <div style="font-size: 20px; font-weight: bold;">📊 真實籌碼自動同步系統</div>
+    <div id="data-date" style="font-size: 11px; color: #8b949e; margin-top: 5px;">資料狀態：準備連線...</div>
   </div>
 
-  <div class="status-area">
-    <div id="status-text" class="status-msg">正在尋找最快的連線路徑...</div>
-    <button id="refresh-btn" class="refresh-btn">🔄 重新連線資料庫</button>
-  </div>
+  <button onclick="fetchAllData()" class="refresh-btn">🔄 強制同步最新數據</button>
 
-  <div id="stats-grid" class="grid">
-    <div class="card"><div class="label">外資期貨淨未平倉</div><div id="oi" class="value">--</div></div>
+  <div class="grid">
+    <div class="card"><div class="label">外資淨未平倉 (TX)</div><div id="oi" class="value">--</div></div>
+    <div class="card"><div class="label">三大法人買賣超 (億)</div><div id="total-buy" class="value">--</div></div>
+    <div class="card"><div class="label">散戶淨未平倉 (模擬)</div><div id="retail" class="value">--</div></div>
     <div class="card"><div class="label">選擇權 P/C Ratio</div><div id="pc" class="value">--</div></div>
-    <div class="card"><div class="label">三大法人現貨買賣超</div><div id="buy" class="value">--</div></div>
-    <div class="card"><div class="label">數據更新狀態</div><div id="sync-tag" class="value" style="font-size: 14px;">待命</div></div>
   </div>
+
+  <div style="font-size: 12px; color: #8b949e;">⚠️ 註：免費 API 每日更新時間約為 15:30 - 16:00</div>
   
-  <div style="font-size: 12px; color: #8b949e; text-align: center; margin-top: 20px;">
-    如果持續失敗，請確認目前為股市開盤時間後的更新時段。
-  </div>
+  <div class="debug-log" id="debug-box">系統日誌啟動中...<br></div>
 </div>
 
 <script>
-  // 多重代理伺服器清單，防止單一失效
-  const proxies = [
-    "https://api.allorigins.win/raw?url=",
-    "https://corsproxy.io/?",
-    "https://thingproxy.freeboard.io/fetch/"
-  ];
+  const debugBox = document.getElementById('debug-box');
+  function log(msg) { debugBox.innerHTML += `> ${msg}<br>`; debugBox.scrollTop = debugBox.scrollHeight; }
 
-  const fetchBtn = document.getElementById('refresh-btn');
-  const statusText = document.getElementById('status-text');
-
-  async function tryFetch(proxyIndex = 0) {
-    if (proxyIndex >= proxies.length) {
-      statusText.innerText = "❌ 所有連線路徑皆失敗，請稍後再試或換個網路環境。";
-      fetchBtn.disabled = false;
-      return;
-    }
-
-    fetchBtn.disabled = true;
-    statusText.innerText = `📡 正在嘗試連線路徑 ${proxyIndex + 1}...`;
-
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
-    const dateStr = startDate.toISOString().split('T')[0];
-    
-    // 目標 URL (FinMind API)
-    const targetUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanFuturesInstitutionalInvestors&data_id=TX&start_date=${dateStr}`;
-    const pcUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanOptionPutCallRatio&start_date=${dateStr}`;
+  async function fetchAllData() {
+    log("開始啟動數據同步流程...");
+    const dateStr = new Date().toISOString().split('T')[0];
+    const proxy = "https://api.allorigins.win/get?url=";
 
     try {
-      // 使用目前選擇的 Proxy 抓取期貨資料
-      const response = await fetch(proxies[proxyIndex] + encodeURIComponent(targetUrl));
-      if (!response.ok) throw new Error("Connection failed");
-      const futJson = await response.json();
-
-      // 抓取 P/C Ratio
-      const pcRes = await fetch(proxies[proxyIndex] + encodeURIComponent(pcUrl));
-      const pcJson = await pcRes.json();
-
-      // 處理資料邏輯
-      const latestFut = futJson.data.filter(d => d.name.includes('外資')).pop();
-      const latestPC = pcJson.data.pop();
+      // 1. 抓取期貨資料
+      log("正在連線 FinMind 期貨 API...");
+      const futUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanFuturesInstitutionalInvestors&data_id=TX&start_date=${dateStr}`;
+      const res = await fetch(proxy + encodeURIComponent(futUrl));
+      const json = await res.json();
+      const rawData = JSON.parse(json.contents);
       
-      if (!latestFut || !latestPC) throw new Error("No data today");
+      log("期貨 API 回傳狀態: " + rawData.msg);
 
-      const netOi = latestFut.long_oi - latestFut.short_oi;
-      const pcRatio = (latestPC.put_volume / latestPC.call_volume).toFixed(2);
+      if (rawData.data && rawData.data.length > 0) {
+        const foreign = rawData.data.filter(d => d.name.includes('外資')).pop();
+        const netOi = foreign.long_oi - foreign.short_oi;
+        
+        document.getElementById('oi').innerText = (netOi > 0 ? '+' : '') + netOi.toLocaleString();
+        document.getElementById('oi').className = 'value ' + (netOi > 0 ? 'up' : 'down');
+        document.getElementById('data-date').innerText = "資料日期：" + foreign.date;
+        log("外資數據更新成功: " + netOi);
+      } else {
+        log("警告: 今日期貨資料尚未發布。");
+      }
 
-      // 更新畫面
-      document.getElementById('data-date').innerText = `最新交易日數據：${latestFut.date}`;
-      
-      const oiEl = document.getElementById('oi');
-      oiEl.innerText = (netOi > 0 ? '+' : '') + netOi.toLocaleString() + " 口";
-      oiEl.className = 'value ' + (netOi > 0 ? 'up' : 'down');
+      // 2. 抓取法人買賣超
+      log("正在連線現貨買賣超 API...");
+      const buyUrl = `https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&start_date=${dateStr}`;
+      const buyRes = await fetch(proxy + encodeURIComponent(buyUrl));
+      const buyJson = await buyRes.json();
+      const buyData = JSON.parse(buyJson.contents).data;
 
-      const pcEl = document.getElementById('pc');
-      pcEl.innerText = pcRatio;
-      pcEl.className = 'value ' + (pcRatio > 1.1 ? 'up' : pcRatio < 1 ? 'down' : 'neutral');
-
-      document.getElementById('sync-tag').innerText = "連線成功";
-      document.getElementById('sync-tag').className = "value text-green";
-      statusText.innerText = "✅ 數據已成功從官方同步！";
-      fetchBtn.disabled = false;
+      if (buyData && buyData.length >= 3) {
+        const total = buyData.slice(-3).reduce((acc, curr) => acc + (curr.buy - curr.sell), 0) / 100000000;
+        document.getElementById('total-buy').innerText = total.toFixed(1);
+        document.getElementById('total-buy').className = 'value ' + (total > 0 ? 'up' : 'down');
+        log("買賣超更新成功: " + total.toFixed(1));
+      }
 
     } catch (err) {
-      console.log(`路徑 ${proxyIndex + 1} 失敗，嘗試下一個...`);
-      tryFetch(proxyIndex + 1); // 遞迴嘗試下一個代理
+      log("錯誤發生: " + err.message);
+      console.error(err);
     }
   }
 
-  // 點擊按鈕執行
-  fetchBtn.addEventListener('click', () => tryFetch(0));
-
-  // 初始載入
-  tryFetch(0);
+  // 頁面開啟自動執行
+  window.onload = fetchAllData;
 </script>
 </body>
 </html>
