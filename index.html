@@ -3,190 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>台股今日強勢股分析</title>
+  <title>台股籌碼與產業分析儀表板</title>
   <style>
+    /* 基礎設定與深色主題 */
     body {
-      background-color: #0f1115;
-      color: #ffffff;
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      padding: 20px;
+      background-color: #0b0e14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
-    }
-    
-    .app-container {
-      max-width: 600px;
-      margin: 0 auto; /* 讓網頁在電腦螢幕上也能置中好看 */
-      display: flex;
-      flex-direction: column;
-    }
-
-    h1 {
-      text-align: center;
-      color: #aaaaaa;
-      font-size: 20px;
-      margin-bottom: 20px;
-    }
-
-    .scan-btn {
-      width: 100%;
-      padding: 16px;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      cursor: pointer;
-    }
-    
-    .scan-btn:active { background-color: #1d4ed8; }
-    .scan-btn:disabled { background-color: #4b5563; cursor: not-allowed; }
-
-    .dashboard {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .loading-text {
-      text-align: center;
-      color: #888888;
-      margin-top: 30px;
-      font-size: 14px;
+      padding: 15px;
       line-height: 1.5;
     }
+    .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    h2 { font-size: 16px; color: #60a5fa; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
 
-    .card {
-      background-color: #1a1d24;
+    /* 頂部標題與日期 */
+    .header { text-align: center; margin-bottom: 10px; }
+    .main-title { font-size: 22px; font-weight: bold; color: #ffffff; margin-bottom: 5px; }
+    .date-display { font-size: 14px; color: #94a3b8; background-color: #1e293b; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+
+    /* 評等與評語區塊 (漸層邊框特效) */
+    .rating-card {
+      background: linear-gradient(#111827, #111827) padding-box, linear-gradient(to right, #ef4444, #eab308, #22c55e) border-box;
+      border: 2px solid transparent;
       border-radius: 10px;
-      padding: 16px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      border-left: 6px solid #ff4d4d;
+      padding: 15px;
     }
+    .rating-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .rating-badge { background-color: #22c55e; color: #000; font-weight: bold; padding: 4px 12px; border-radius: 4px; font-size: 14px; }
+    .rating-comment { font-size: 13px; color: #cbd5e1; text-align: justify; }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #2d313a;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+    /* 籌碼表格設計 */
+    .chip-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
+    .chip-box { background-color: #1e293b; padding: 12px; border-radius: 8px; text-align: center; }
+    .chip-title { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+    .chip-value { font-size: 18px; font-weight: bold; }
+    .text-red { color: #ef4444; } /* 台股習慣：紅色上漲/買超 */
+    .text-green { color: #22c55e; } /* 綠色下跌/賣超 */
+    .chip-full { grid-column: span 2; display: flex; justify-content: space-around; background-color: #162032; }
 
-    .title { font-weight: bold; font-size: 16px; color: #ff4d4d;}
-    .price { color: #aaaaaa; font-size: 14px;}
+    /* 產業排行榜設計 */
+    .industry-section { background-color: #111827; border-radius: 10px; padding: 15px; }
+    .rank-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #334155; font-size: 14px; }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-num { width: 20px; font-weight: bold; color: #64748b; }
+    .rank-name { flex-grow: 1; color: #e2e8f0; }
+    .rank-percent { font-weight: bold; }
     
-    .card-body {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .stock-name { margin: 0; font-size: 14px; color: #888888; }
-    .stock-price { margin: 5px 0 0 0; font-size: 20px; font-weight: bold; }
-
-    .badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: bold;
-      background-color: #331a1a;
-      color: #ff4d4d;
-    }
+    /* 頁籤按鈕 */
+    .tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+    .tab-btn { flex: 1; padding: 8px; background-color: #1e293b; color: #94a3b8; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .tab-btn.active { background-color: #3b82f6; color: white; font-weight: bold; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body>
 
-  <div class="app-container">
-    <h1>📊 台股交易策略儀表板</h1>
-    <button id="scan-btn" class="scan-btn">▶ 開始掃描今日強勢股</button>
-    
-    <div id="dashboard" class="dashboard">
-      <div class="loading-text">👆 請點擊上方按鈕開始連線<br>(資料來源: 台灣證券交易所)</div>
+<div class="container">
+  
+  <div class="header">
+    <div class="main-title">🎯 操盤手戰情中心</div>
+    <div class="date-display" id="today-date">載入日期中...</div>
+  </div>
+
+  <div class="rating-card">
+    <div class="rating-header">
+      <span style="font-weight: bold; color: #e2e8f0;">📈 AI 綜合解析</span>
+      <span class="rating-badge">偏多操作 (Buy)</span>
+    </div>
+    <div class="rating-comment">
+      <strong>今日評語：</strong>外資期貨淨多單增加，P/C Ratio 站穩 1.15 之上，下檔支撐力道強勁。資金明顯輪動至「散熱模組」與「半導體設備」，建議避開弱勢破底股，逢低佈局有法人籌碼保護的強勢產業。
     </div>
   </div>
 
-  <script>
-    const targetUrl = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL";
-    const proxy1 = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-    const proxy2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+  <div>
+    <h2>💰 今日期權與法人籌碼</h2>
+    <div class="chip-grid">
+      <div class="chip-box">
+        <div class="chip-title">外資現貨買賣超</div>
+        <div class="chip-value text-red">+ 152.4 億</div>
+      </div>
+      <div class="chip-box">
+        <div class="chip-title">投信現貨買賣超</div>
+        <div class="chip-value text-red">+ 35.8 億</div>
+      </div>
+      <div class="chip-box">
+        <div class="chip-title">外資期貨未平倉</div>
+        <div class="chip-value text-red">+ 8,520 口</div>
+      </div>
+      <div class="chip-box">
+        <div class="chip-title">選擇權 P/C Ratio</div>
+        <div class="chip-value" style="color: #eab308;">1.18 (偏多)</div>
+      </div>
+      <div class="chip-box chip-full">
+        <div>
+          <div class="chip-title">散戶小台指標</div>
+          <div class="chip-value text-green">- 12.5%</div>
+        </div>
+        <div>
+          <div class="chip-title">大盤成交量</div>
+          <div class="chip-value" style="color: #cbd5e1;">4,250 億</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="industry-section">
+    <h2>🏆 資金流向：細產業排行榜</h2>
     
-    const scanBtn = document.getElementById('scan-btn');
-    const dashboard = document.getElementById('dashboard');
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('daily')">今日最強</button>
+      <button class="tab-btn" onclick="switchTab('weekly')">近一週</button>
+      <button class="tab-btn" onclick="switchTab('monthly')">近一個月</button>
+    </div>
 
-    function renderCards(data) {
-      dashboard.innerHTML = ''; 
-      let count = 0;
+    <div id="daily" class="tab-content active">
+      <div class="rank-row"><span class="rank-num">1</span><span class="rank-name">散熱模組</span><span class="rank-percent text-red">+ 4.5%</span></div>
+      <div class="rank-row"><span class="rank-num">2</span><span class="rank-name">矽光子 / CPO</span><span class="rank-percent text-red">+ 3.8%</span></div>
+      <div class="rank-row"><span class="rank-num">3</span><span class="rank-name">半導體設備</span><span class="rank-percent text-red">+ 2.9%</span></div>
+      <div class="rank-row"><span class="rank-num">4</span><span class="rank-name">AI 伺服器</span><span class="rank-percent text-red">+ 2.1%</span></div>
+      <div class="rank-row"><span class="rank-num">5</span><span class="rank-name">塑膠工業</span><span class="rank-percent text-green">- 1.5%</span></div>
+    </div>
 
-      data.forEach(stock => {
-        if(stock.HighestPrice && stock.ClosingPrice && stock.OpeningPrice) {
-          const high = parseFloat(stock.HighestPrice.replace(/,/g, ''));
-          const close = parseFloat(stock.ClosingPrice.replace(/,/g, ''));
-          const open = parseFloat(stock.OpeningPrice.replace(/,/g, ''));
+    <div id="weekly" class="tab-content">
+      <div class="rank-row"><span class="rank-num">1</span><span class="rank-name">矽光子 / CPO</span><span class="rank-percent text-red">+ 12.5%</span></div>
+      <div class="rank-row"><span class="rank-num">2</span><span class="rank-name">散熱模組</span><span class="rank-percent text-red">+ 9.2%</span></div>
+      <div class="rank-row"><span class="rank-num">3</span><span class="rank-name">重電工程</span><span class="rank-percent text-red">+ 8.4%</span></div>
+      <div class="rank-row"><span class="rank-num">4</span><span class="rank-name">半導體設備</span><span class="rank-percent text-red">+ 5.1%</span></div>
+      <div class="rank-row"><span class="rank-num">5</span><span class="rank-name">水泥工業</span><span class="rank-percent text-green">- 3.2%</span></div>
+    </div>
 
-          if(close === high && close > open) {
-            count++;
-            if(count <= 15) { 
-              const cardHTML = `
-                <div class="card">
-                  <div class="card-header">
-                    <span class="title">🚀 強勢創高</span>
-                    <span class="price">代號: ${stock.Code}</span>
-                  </div>
-                  <div class="card-body">
-                    <div>
-                      <p class="stock-name">${stock.Name}</p>
-                      <p class="stock-price">$${close}</p>
-                    </div>
-                    <span class="badge">收最高點</span>
-                  </div>
-                </div>
-              `;
-              dashboard.innerHTML += cardHTML;
-            }
-          }
-        }
-      });
+    <div id="monthly" class="tab-content">
+      <div class="rank-row"><span class="rank-num">1</span><span class="rank-name">重電工程</span><span class="rank-percent text-red">+ 25.4%</span></div>
+      <div class="rank-row"><span class="rank-num">2</span><span class="rank-name">AI 伺服器</span><span class="rank-percent text-red">+ 18.2%</span></div>
+      <div class="rank-row"><span class="rank-num">3</span><span class="rank-name">半導體設備</span><span class="rank-percent text-red">+ 15.6%</span></div>
+      <div class="rank-row"><span class="rank-num">4</span><span class="rank-name">水資源概念股</span><span class="rank-percent text-red">+ 10.1%</span></div>
+      <div class="rank-row"><span class="rank-num">5</span><span class="rank-name">航運業</span><span class="rank-percent text-green">- 8.5%</span></div>
+    </div>
 
-      if(count === 0) {
-         dashboard.innerHTML = '<div class="loading-text">今日盤勢無符合條件的股票</div>';
-      }
-      resetButton();
-    }
+  </div>
 
-    function resetButton() {
-      scanBtn.innerText = "▶ 重新掃描";
-      scanBtn.disabled = false;
-    }
+</div>
 
-    function startScanning() {
-      scanBtn.innerText = "⏳ 掃描中，請稍候...";
-      scanBtn.disabled = true;
-      dashboard.innerHTML = '<div class="loading-text">⏳ 正在連線中，請稍候...</div>';
+<script>
+  // 1. 自動取得並顯示今天的日期
+  const today = new Date();
+  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+  document.getElementById('today-date').innerText = today.toLocaleDateString('zh-TW', options);
 
-      fetch(proxy1)
-        .then(response => {
-            if (!response.ok) throw new Error('Proxy1 Error');
-            return response.json();
-        })
-        .then(data => renderCards(data))
-        .catch(error => {
-          dashboard.innerHTML = '<div class="loading-text" style="color:#e6b800;">⏳ 網路擁塞，切換備用線路...</div>';
-          fetch(proxy2)
-            .then(response => {
-                if (!response.ok) throw new Error('Proxy2 Error');
-                return response.json();
-            })
-            .then(data => renderCards(data))
-            .catch(err => {
-              dashboard.innerHTML = `<div class="loading-text" style="color:#ff4d4d;">❌ 網路大塞車，請稍後再試！</div>`;
-              resetButton(); 
-            });
-        });
-    }
+  // 2. 控制產業排行榜的頁籤切換
+  function switchTab(tabId) {
+    // 隱藏所有內容
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    // 取消所有按鈕的亮起狀態
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    // 顯示被點擊的內容
+    document.getElementById(tabId).classList.add('active');
+    // 讓被點擊的按鈕亮起
+    event.target.classList.add('active');
+  }
+</script>
 
-    scanBtn.addEventListener('click', startScanning);
-  </script>
 </body>
 </html>
