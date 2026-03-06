@@ -1,8 +1,8 @@
 const dailyData = {
-    "updateDate": "2026/03/06 20:27",
-    "aiStatusText": "最新數據已同步",
+    "updateDate": "2026/03/06 20:34",
+    "aiStatusText": "全自動更新成功",
     "aiStatusColor": "var(--green)",
-    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！",
+    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、選擇權 P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！系統運作正常！",
     "chips": [
         {
             "label": "外資淨未平倉 (TX)",
@@ -11,7 +11,7 @@ const dailyData = {
         },
         {
             "label": "選擇權 P/C Ratio",
-            "value": "官網解析失敗",
+            "value": "查無最新資料",
             "color": "down"
         },
         {
