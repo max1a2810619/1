@@ -1,23 +1,23 @@
 const dailyData = {
-    "updateDate": "2026/03/06 20:34",
-    "aiStatusText": "全自動更新成功",
+    "updateDate": "2026/03/06 20:42",
+    "aiStatusText": "全數據同步完成",
     "aiStatusColor": "var(--green)",
-    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、選擇權 P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！系統運作正常！",
+    "aiCommentText": "<b>本日解析：</b>所有股價與四大籌碼數據（外資期貨、散戶小台、P/C Ratio、法人買賣超）皆已全自動連線更新！",
     "chips": [
         {
             "label": "外資淨未平倉 (TX)",
-            "value": "需進階API",
+            "value": "連線失敗",
             "color": "down"
         },
         {
             "label": "選擇權 P/C Ratio",
-            "value": "查無最新資料",
+            "value": "查無資料",
             "color": "down"
         },
         {
-            "label": "散戶淨未平倉 (口)",
-            "value": "需進階API",
-            "color": "up"
+            "label": "散戶淨未平倉 (小台)",
+            "value": "連線失敗",
+            "color": "down"
         },
         {
             "label": "法人買賣超 (億)",
