@@ -1,0 +1,41 @@
+name: Daily Stock Data Update
+
+on:
+  schedule:
+    # 台灣時間每天 15:00 執行 (UTC 07:00)，週一到週五
+    - cron: '0 7 * * 1-5'
+  workflow_dispatch: # 允許手動點擊執行
+
+# 加入寫入權限，讓機器人可以更新你的程式碼
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 取得倉庫程式碼
+      uses: actions/checkout@v3
+
+    - name: 安裝 Python 環境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 安裝所需套件
+      run: |
+        pip install -r requirements.txt
+
+    - name: 執行 Python 抓取股價腳本
+      run: |
+        python update_data.py
+
+    - name: 將最新數據推送回 GitHub
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git add data.js
+        # 檢查是否有檔案變動，有變動才 commit
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自動更新台股盤後數據"
+        git push
