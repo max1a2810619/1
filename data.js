@@ -1,27 +1,27 @@
 const dailyData = {
-    "updateDate": "2026/03/06 20:18",
-    "aiStatusText": "最新報價已更新",
+    "updateDate": "2026/03/06 20:27",
+    "aiStatusText": "最新數據已同步",
     "aiStatusColor": "var(--green)",
-    "aiCommentText": "<b>本日解析：</b>個股收盤價已由 Python 爬蟲自動從 Yahoo Finance 抓取更新完畢！籌碼數據目前為靜態展示。",
+    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！",
     "chips": [
         {
             "label": "外資淨未平倉 (TX)",
-            "value": "- 41,134",
+            "value": "需進階API",
             "color": "down"
         },
         {
             "label": "選擇權 P/C Ratio",
-            "value": "0.88",
+            "value": "官網解析失敗",
             "color": "down"
         },
         {
             "label": "散戶淨未平倉 (口)",
-            "value": "+ 13,282",
+            "value": "需進階API",
             "color": "up"
         },
         {
             "label": "法人買賣超 (億)",
-            "value": "- 458 億",
+            "value": "-288.6 億",
             "color": "down"
         }
     ],
@@ -39,13 +39,6 @@ const dailyData = {
             "stocks": "聯亞(3081)、波若威(3163)",
             "percent": "+3.8%",
             "color": "up"
-        },
-        {
-            "rank": 3,
-            "sector": "半導體設備",
-            "stocks": "弘塑(3131)、辛耘(3583)",
-            "percent": "+2.9%",
-            "color": "up"
         }
     ],
     "stockPicks": [
@@ -54,14 +47,14 @@ const dailyData = {
             "current": "356.0",
             "target": "520",
             "eps": "16.8",
-            "reason": "台積電 CoWoS 設備直接受惠者。相較漲幅已大的同業，具備更強的籌碼穩定度。"
+            "reason": "台積電 CoWoS 設備直接受惠者。"
         },
         {
             "name": "台光電 (2383)",
             "current": "2360.0",
             "target": "620",
             "eps": "32.0",
-            "reason": "AI 伺服器 CCL 板王者。目前本益比回落至歷史低檔，尚未隨指數大漲，具補漲空間。"
+            "reason": "AI 伺服器 CCL 板王者。具備落後補漲空間。"
         }
     ]
 };
