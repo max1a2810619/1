@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台股終極戰情室 V3.0</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>台股終極戰情室 V3.1</title>
     <style>
         :root { --bg: #0b0e14; --card: #161b22; --accent: #3b82f6; --red: #f85149; --green: #3fb950; --border: #30363d; }
         body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, sans-serif; margin: 0; padding: 12px; line-height: 1.5; }
@@ -30,7 +34,7 @@
         .rank-row { padding: 8px 0; border-bottom: 1px dashed #30363d; display: flex; justify-content: space-between; align-items: center; }
         .rank-row:last-child { border: none; }
 
-        /* 🔥 選股卡片：超大字顯示「最新收盤價」 */
+        /* 選股卡片 */
         .pick-card { background: #0d1117; border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden;}
         .pick-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .pick-name { font-size: 22px; font-weight: bold; color: white; }
@@ -49,33 +53,24 @@
 
 <div class="container">
     <div class="header">
-        <div style="font-size: 24px; font-weight: bold; color: #fff;">🦅 終極戰情室 V3.0</div>
-        <span id="data-status" class="ver-tag">正在同步最新行情與籌碼...</span>
+        <div style="font-size: 24px; font-weight: bold; color: #fff;">🦅 終極戰情室 V3.1</div>
+        <span id="data-status" class="ver-tag">載入中...</span>
     </div>
 
     <div class="rating-card">
         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
             <span style="font-weight: bold;">📈 AI 盤後綜合評述</span>
-            <span id="ai-status" class="rating-badge">偏空警戒</span>
+            <span id="ai-status" class="rating-badge"></span>
         </div>
-        <div id="ai-comment" style="font-size: 13px;">
-            <b>本日解析：</b>今日指數大漲 844 點，但外資空單增至 -41,134 口，現貨賣超 458 億，顯示高檔套現壓力沉重。操作上應避開已噴出個股，鎖定尚未大漲、具備基期優勢的潛力標的。
-        </div>
+        <div id="ai-comment" style="font-size: 13px;"></div>
     </div>
 
-    <div class="grid">
-        <div class="card"><div class="label">外資淨未平倉 (TX)</div><div id="val-oi" class="value down">- 41,134</div></div>
-        <div class="card"><div class="label">選擇權 P/C Ratio</div><div id="val-pc" class="value down">0.88</div></div>
-        <div class="card"><div class="label">散戶淨未平倉 (口)</div><div id="val-retail" class="value down">+ 13,282</div></div>
-        <div class="card"><div class="label">法人買賣超 (億)</div><div id="val-buy" class="value down">- 458 億</div></div>
-    </div>
+    <div class="grid" id="data-grid">
+        </div>
 
     <div class="section-title">🏆 資金流向排行榜 (細產業)</div>
-    <div class="rank-box">
-        <div class="rank-row"><div><b>1. 散熱模組</b><div style="font-size:11px;color:#8b949e;">雙鴻(3324)、奇鋐(3017)</div></div><span class="up">+4.5%</span></div>
-        <div class="rank-row"><div><b>2. 矽光子 CPO</b><div style="font-size:11px;color:#8b949e;">聯亞(3081)、波若威(3163)</div></div><span class="up">+3.8%</span></div>
-        <div class="rank-row"><div><b>3. 半導體設備</b><div style="font-size:11px;color:#8b949e;">弘塑(3131)、辛耘(3583)</div></div><span class="up">+2.9%</span></div>
-    </div>
+    <div class="rank-box" id="rank-box">
+        </div>
 
     <div class="section-title">🔥 潛力精選股 (低於目標價)</div>
     <div id="news-picks">
@@ -83,16 +78,73 @@
 </div>
 
 <script>
-    // 🏆 精選尚未大漲、有肉的個股資料
-    const stockPicks = [
-        { name: "雙鴻 (3324)", current: "845", target: "980", eps: "28.5", reason: "AI 水冷板龍頭。目前股價回測月線有守，隨液冷滲透率翻倍，毛利預期將於 Q3 爆發，目前位階安全。" },
-        { name: "辛耘 (3583)", current: "442", target: "520", eps: "16.8", reason: "台積電 CoWoS 設備直接受惠者。雖然位階不低，但相較漲幅已大的同業，辛耘具備更強的籌碼穩定度。" },
-        { name: "台光電 (2383)", current: "451", target: "620", eps: "32.0", reason: "AI 伺服器 CCL 板王者。目前本益比回落至歷史低檔，尚未隨指數大漲，補漲空間超過 30%。" }
-    ];
+    // ==========================================
+    // 🚀 【每日資料中控台】 🚀
+    // 未來你每天只需要更改這裡的資料，網頁就會自動更新！
+    // ==========================================
+    const dailyData = {
+        // 1. 頁面更新時間
+        updateDate: "2026/03/06",
+        
+        // 2. AI 綜合評述
+        aiStatusText: "偏空警戒",
+        aiStatusColor: "var(--red)", // 偏空用 --red，偏多用 --green
+        aiCommentText: "<b>本日解析：</b>今日指數大漲 844 點，但外資空單增至 -41,134 口，現貨賣超 458 億，顯示高檔套現壓力沉重。操作上應避開已噴出個股，鎖定尚未大漲、具備基期優勢的潛力標的。",
 
-    function renderPicks() {
-        const container = document.getElementById('news-picks');
-        container.innerHTML = stockPicks.map(p => {
+        // 3. 四大籌碼數據 (數值前方可加正負號，color 決定顏色)
+        chips: [
+            { label: "外資淨未平倉 (TX)", value: "- 41,134", color: "down" }, // down 是綠色
+            { label: "選擇權 P/C Ratio", value: "0.88", color: "down" },
+            { label: "散戶淨未平倉 (口)", value: "+ 13,282", color: "up" }, // up 是紅色
+            { label: "法人買賣超 (億)", value: "- 458 億", color: "down" }
+        ],
+
+        // 4. 產業排行榜
+        ranking: [
+            { rank: 1, sector: "散熱模組", stocks: "雙鴻(3324)、奇鋐(3017)", percent: "+4.5%", color: "up" },
+            { rank: 2, sector: "矽光子 CPO", stocks: "聯亞(3081)、波若威(3163)", percent: "+3.8%", color: "up" },
+            { rank: 3, sector: "半導體設備", stocks: "弘塑(3131)、辛耘(3583)", percent: "+2.9%", color: "up" }
+        ],
+
+        // 5. 潛力精選股
+        stockPicks: [
+            { name: "雙鴻 (3324)", current: "845", target: "980", eps: "28.5", reason: "AI 水冷板龍頭。目前股價回測月線有守，隨液冷滲透率翻倍，毛利預期將於 Q3 爆發，目前位階安全。" },
+            { name: "辛耘 (3583)", current: "442", target: "520", eps: "16.8", reason: "台積電 CoWoS 設備直接受惠者。雖然位階不低，但相較漲幅已大的同業，辛耘具備更強的籌碼穩定度。" },
+            { name: "台光電 (2383)", current: "451", target: "620", eps: "32.0", reason: "AI 伺服器 CCL 板王者。目前本益比回落至歷史低檔，尚未隨指數大漲，補漲空間超過 30%。" }
+        ]
+    };
+
+    // ==========================================
+    // 🛠️ 以下是自動渲染程式碼，不需要每天修改
+    // ==========================================
+    function renderDashboard() {
+        // 更新標題時間
+        document.getElementById('data-status').innerText = `✅ 最後更新：${dailyData.updateDate} (V3.1 版)`;
+
+        // 更新 AI 評述
+        const aiStatusBadge = document.getElementById('ai-status');
+        aiStatusBadge.innerText = dailyData.aiStatusText;
+        aiStatusBadge.style.backgroundColor = dailyData.aiStatusColor;
+        document.getElementById('ai-comment').innerHTML = dailyData.aiCommentText;
+
+        // 更新籌碼數據
+        document.getElementById('data-grid').innerHTML = dailyData.chips.map(chip => `
+            <div class="card">
+                <div class="label">${chip.label}</div>
+                <div class="value ${chip.color}">${chip.value}</div>
+            </div>
+        `).join('');
+
+        // 更新排行榜
+        document.getElementById('rank-box').innerHTML = dailyData.ranking.map(r => `
+            <div class="rank-row">
+                <div><b>${r.rank}. ${r.sector}</b><div style="font-size:11px;color:#8b949e;">${r.stocks}</div></div>
+                <span class="${r.color}">${r.percent}</span>
+            </div>
+        `).join('');
+
+        // 更新選股
+        document.getElementById('news-picks').innerHTML = dailyData.stockPicks.map(p => {
             const potential = (((parseFloat(p.target) - parseFloat(p.current)) / parseFloat(p.current)) * 100).toFixed(1);
             return `
                 <div class="pick-card">
@@ -100,7 +152,6 @@
                         <span class="pick-name">${p.name}</span>
                         <span class="potential-tag">補漲空間 +${potential}%</span>
                     </div>
-                    
                     <div class="price-container">
                         <div class="price-group">
                             <span class="price-label">最新收盤價</span>
@@ -112,36 +163,17 @@
                             <span class="price-sub">${p.target}</span>
                         </div>
                     </div>
-
                     <div style="font-size: 12px; margin-bottom: 12px; text-align: center; color: #8b949e;">
                         2026 預估 EPS：<b style="color: #eab308;">${p.eps} 元</b>
                     </div>
-
                     <div class="reason-box"><b>買進原因：</b>${p.reason}</div>
                 </div>
             `;
         }).join('');
     }
-    renderPicks();
 
-    // 全自動 API 連線抓取 (穩定版)
-    async function syncData() {
-        const proxy = "https://api.allorigins.win/get?url=";
-        const d = new Date(); d.setDate(d.getDate() - 7);
-        const dateStr = d.toISOString().split('T')[0];
-        
-        try {
-            const futRes = await fetch(proxy + encodeURIComponent(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanFuturesInstitutionalInvestors&data_id=TX&start_date=${dateStr}`)).then(r => r.json());
-            const futData = JSON.parse(futRes.contents).data;
-            if (futData && futData.length > 0) {
-                const latest = futData.filter(d => d.name.includes('外資')).pop();
-                document.getElementById('data-status').innerText = `✅ 數據日：${latest.date} (V3.0 版)`;
-            }
-        } catch (e) {
-            document.getElementById('data-status').innerText = "📅 顯示 03/05 籌碼日報快照 (V3.0)";
-        }
-    }
-    syncData();
+    // 執行渲染
+    renderDashboard();
 </script>
 </body>
 </html>
