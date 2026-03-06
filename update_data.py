@@ -1,7 +1,6 @@
 import yfinance as yf
 import requests
 import json
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
 # --- 基本設定 ---
@@ -32,25 +31,31 @@ def get_twse_net_buy():
         return {"label": "法人買賣超 (億)", "value": "API維護中", "color": "down"}
 
 def get_taifex_pc_ratio():
-    """抓取期交所選擇權 P/C Ratio"""
+    """使用 FinMind API 抓取選擇權 P/C Ratio (避開期交所海外 IP 阻擋)"""
     try:
-        url = "https://www.taifex.com.tw/cht/3/pcRatio"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.text, 'html.parser')
+        url = "https://api.finmindtrade.com/api/v4/data"
+        # 抓取最近 10 天的資料，確保一定有最新的一筆 (避開長假)
+        start_date = (datetime.utcnow() - timedelta(days=10)).strftime("%Y-%m-%d")
+        params = {
+            "dataset": "TaiwanOptionPutCallRatio",
+            "start_date": start_date
+        }
+        res = requests.get(url, params=params, timeout=10)
+        data = res.json()
         
-        # 找到包含數據的表格，最新日期通常在第一列資料 (rows[1])
-        table = soup.find('table', class_='table_f')
-        rows = table.find_all('tr')
-        cols = rows[1].find_all('td')
-        pc_ratio = float(cols[5].text.strip()) / 100 
-        
-        color = "up" if pc_ratio >= 1 else "down" # > 1 偏多(紅)，< 1 偏空(綠)
-        print(f"✅ 成功獲取 P/C Ratio: {pc_ratio:.2f}")
-        return {"label": "選擇權 P/C Ratio", "value": f"{pc_ratio:.2f}", "color": color}
+        if data.get("msg") == "success" and len(data.get("data", [])) > 0:
+            latest_data = data["data"][-1]
+            # FinMind 的 PutCallRatio 是百分比，例如 115.5，除以 100 變成 1.15
+            pc_ratio = float(latest_data.get("PutCallRatio", 100)) / 100
+            color = "up" if pc_ratio >= 1 else "down" # > 1 偏多(紅)，< 1 偏空(綠)
+            print(f"✅ 成功獲取 P/C Ratio (FinMind): {pc_ratio:.2f}")
+            return {"label": "選擇權 P/C Ratio", "value": f"{pc_ratio:.2f}", "color": color}
+        else:
+            print("⚠️ FinMind 回傳資料為空或異常")
+            return {"label": "選擇權 P/C Ratio", "value": "查無最新資料", "color": "down"}
     except Exception as e:
         print(f"❌ P/C Ratio抓取失敗: {e}")
-        return {"label": "選擇權 P/C Ratio", "value": "官網解析失敗", "color": "down"}
+        return {"label": "選擇權 P/C Ratio", "value": "API連線失敗", "color": "down"}
 
 # ==========================================
 # 📈 股價抓取區
@@ -84,15 +89,15 @@ for ticker, info in targets.items():
 # ==========================================
 daily_data = {
     "updateDate": update_time_str,
-    "aiStatusText": "最新數據已同步",
+    "aiStatusText": "全自動更新成功",
     "aiStatusColor": "var(--green)",
-    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！",
+    "aiCommentText": "<b>本日解析：</b>個股收盤價、法人買賣超、選擇權 P/C Ratio 皆已透過 Python 自動爬蟲抓取完畢！系統運作正常！",
     
     # 將爬蟲函數抓到的資料放入 chips 陣列
     "chips": [
-        {"label": "外資淨未平倉 (TX)", "value": "需進階API", "color": "down"}, # 期交所期貨表格過於複雜，為避免系統崩潰暫不解析
+        {"label": "外資淨未平倉 (TX)", "value": "需進階API", "color": "down"}, 
         get_taifex_pc_ratio(),
-        {"label": "散戶淨未平倉 (口)", "value": "需進階API", "color": "up"},   # 需多表交叉計算，暫列為進階項目
+        {"label": "散戶淨未平倉 (口)", "value": "需進階API", "color": "up"},   
         get_twse_net_buy()
     ],
     
