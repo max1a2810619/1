@@ -2,31 +2,26 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (VIP 金鑰直連模式)...")
+print("啟動極簡籌碼爬蟲 (VIP 金鑰 + 中英雙語防護模式)...")
 
 # ==========================================
-# 🔑 你的 FinMind 專屬 VIP 通行證已安裝完畢！
+# 🔑 你的 FinMind 專屬 VIP 通行證
 # ==========================================
 FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMy0wNyAxNzo0MzozNCIsInVzZXJfaWQiOiJtYXgxYTIiLCJpcCI6IjI3LjUzLjEyMi4yMjUiLCJleHAiOjE3NzM0ODE0MTR9.H65hXmFH8m4jx2_yxP6roSZisZIuaPX0uOl3bWCdE_Q"
 
 def get_institutional_net_buy():
-    """抓取證交所三大法人買賣超 (證交所不會擋國外IP，免金鑰)"""
+    """抓取證交所三大法人買賣超"""
     try:
         url = "https://www.twse.com.tw/rwd/zh/fund/BFI82U?response=json"
         res = requests.get(url, timeout=10)
         data = res.json()
         total_str = data['data'][-1][3] 
         net_value = float(total_str.replace(',', '')) / 100000000
-        print(f"✅ 三大法人買賣超: {net_value:.2f} 億")
         return round(net_value, 2)
     except Exception as e:
         return "法人連線異常"
 
 def get_foreign_tx_oi():
-    """使用 VIP 金鑰抓取外資未平倉 (保證不被擋)"""
-    if not FINMIND_TOKEN or "把你的金鑰貼在這裡" in FINMIND_TOKEN:
-        return "請先填寫Token金鑰", 0, "未知"
-        
     print("使用 VIP 通行證連線 FinMind...")
     try:
         url = "https://api.finmindtrade.com/api/v4/data"
@@ -35,29 +30,35 @@ def get_foreign_tx_oi():
             "dataset": "TaiwanFuturesInstitutionalInvestors",
             "data_id": "TX",
             "start_date": start_date,
-            "token": FINMIND_TOKEN # 👈 這裡就是突破封鎖的關鍵！
+            "token": FINMIND_TOKEN
         }
         res = requests.get(url, params=params, timeout=10)
         data = res.json()
         
         if data.get("msg") == "success":
-            # 篩選外資
-            foreign_data = [item for item in data.get("data", []) if "外資" in str(item.get("name", "")) + str(item.get("investor", ""))]
+            raw_data = data.get("data", [])
+            
+            # 【關鍵突破】中英文一起抓！不管叫「外資」還是「Foreign」都無所遁形
+            foreign_data = []
+            for item in raw_data:
+                item_str = str(item).lower()
+                if "外資" in item_str or "foreign" in item_str:
+                    foreign_data.append(item)
             
             if len(foreign_data) >= 2:
                 foreign_data = sorted(foreign_data, key=lambda x: x.get('date', ''))
                 latest = foreign_data[-1]
                 prev = foreign_data[-2]
                 
-                # 安全抓取口數
                 latest_oi = latest.get('long_short_net_oi_volume', latest.get('net_oi_volume', 0))
                 prev_oi = prev.get('long_short_net_oi_volume', prev.get('net_oi_volume', 0))
                 data_date = latest.get('date', '未知日期')
                 
-                print(f"✅ 成功獲取！最新外資未平倉: {latest_oi}")
                 return latest_oi, latest_oi - prev_oi, data_date
             else:
-                return "資料筆數不足", 0, "未知"
+                # 終極除錯：如果真的連英文都不是，直接印出他們現在到底改叫什麼名字！
+                names = list(set([str(item.get("name", item.get("investor", "無名稱"))) for item in raw_data]))
+                return f"名字變了:{','.join(names)[:15]}", 0, "未知"
         else:
             return f"金鑰無效或被拒", 0, "未知"
             
