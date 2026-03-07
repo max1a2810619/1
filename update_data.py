@@ -1,78 +1,98 @@
 import requests
+import re
 import json
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (X光透視模式)...")
+print("啟動極簡籌碼爬蟲 (期交所官方直連模式)...")
 
 def get_institutional_net_buy():
+    """抓取證交所三大法人買賣超 (換算為億)"""
     try:
         url = "https://www.twse.com.tw/rwd/zh/fund/BFI82U?response=json"
         res = requests.get(url, timeout=10)
         data = res.json()
         total_str = data['data'][-1][3] 
         net_value = float(total_str.replace(',', '')) / 100000000
+        print(f"✅ 三大法人買賣超抓取成功: {net_value:.2f} 億")
         return round(net_value, 2)
     except Exception as e:
-        return f"法人API錯誤"
+        print(f"❌ 三大法人抓取失敗: {e}")
+        return None
+
+def get_taifex_oi(date_str):
+    """直接爬取期交所官方網頁"""
+    url = "https://www.taifex.com.tw/cht/3/futContractsDate"
+    payload = {
+        "queryType": "1",
+        "doQuery": "1",
+        "queryDate": date_str,
+        "commodityId": "TXF" # 鎖定只查臺股期貨
+    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    try:
+        res = requests.post(url, data=payload, headers=headers, timeout=10)
+        html = res.text
+        
+        if "外資及陸資" not in html:
+            return None # 可能是假日或尚未結算，沒有資料
+            
+        # 鎖定網頁中「外資」的那一列表格
+        match = re.search(r'外資及陸資(.*?)</tr>', html, re.DOTALL)
+        if match:
+            row_html = match.group(1)
+            # 抓出所有格子裡的文字
+            tds = re.findall(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+            # 清除 HTML 標籤跟千分位逗號
+            texts = [re.sub(r'<[^>]+>', '', td).strip().replace(',', '') for td in tds]
+            # 轉成純數字 (保留負號)
+            nums = [int(x) for x in texts if x.lstrip('-').isdigit()]
+            
+            # 期交所的表格固定有 12 個數字，倒數第二個絕對是「未平倉淨口數」
+            if len(nums) >= 2:
+                return nums[-2]
+    except Exception as e:
+        print(f"期交所抓取錯誤: {e}")
+    return None
 
 def get_foreign_tx_oi():
-    try:
-        url = "https://api.finmindtrade.com/api/v4/data"
-        start_date = (datetime.utcnow() - timedelta(days=15)).strftime("%Y-%m-%d")
-        params = {"dataset": "TaiwanFuturesInstitutionalInvestors", "data_id": "TX", "start_date": start_date}
-        res = requests.get(url, params=params, timeout=10)
-        data = res.json()
+    print("開始連線期交所官方網站...")
+    
+    tw_time = datetime.utcnow() + timedelta(hours=8)
+    oi_history = []
+    dates_found = []
+    
+    # 自動往前推算 10 天，找出最近的「兩個」有開盤的交易日
+    for i in range(10):
+        check_date = (tw_time - timedelta(days=i)).strftime("%Y/%m/%d")
+        oi = get_taifex_oi(check_date)
         
-        if data.get("msg") == "success":
-            data_list = data.get("data", [])
-            if len(data_list) > 0:
-                # 尋找任何包含「外」或「foreign」的資料 (忽略大小寫)
-                foreign_data = []
-                for d in data_list:
-                    dict_str = str(d).lower()
-                    if "外" in dict_str or "foreign" in dict_str:
-                        foreign_data.append(d)
-                
-                if len(foreign_data) >= 2:
-                    foreign_data = sorted(foreign_data, key=lambda x: x.get('date', ''))
-                    latest_item = foreign_data[-1]
-                    prev_item = foreign_data[-2]
-                    
-                    # 找出 key 中包含 volume (口數) 且有 net (淨額) 或 oi (未平倉) 的欄位
-                    def get_oi_volume(d):
-                        for k, v in d.items():
-                            if isinstance(v, (int, float)) and 'volume' in k.lower() and ('net' in k.lower() or 'oi' in k.lower()):
-                                return v
-                        return d.get('long_short_net_oi_volume', d.get('net_oi_volume', 0))
-
-                    latest_oi = get_oi_volume(latest_item)
-                    prev_oi = get_oi_volume(prev_item)
-                    oi_change = latest_oi - prev_oi
-                    latest_date = latest_item.get("date", "未知")
-                    
-                    return latest_oi, oi_change, latest_date
-                else:
-                    # 終極透視：直接把最後一筆資料的「所有欄位名稱」印在網頁上！
-                    debug_keys = list(data_list[-1].keys())
-                    debug_vals = list(data_list[-1].values())
-                    return f"找不到! 欄位有:{debug_keys[:3]}", f"值有:{str(debug_vals[:3])[:10]}", "未知"
-            else:
-                return "API無回傳資料", 0, "未知"
-        else:
-            return f"API拒絕:{data.get('msg')}", 0, "未知"
+        if oi is not None:
+            print(f"🔍 找到 {check_date} 的資料: {oi} 口")
+            oi_history.append(oi)
+            dates_found.append(check_date)
             
-    except Exception as e:
-        return f"程式錯誤:{str(e)[:15]}", 0, "未知"
+        if len(oi_history) == 2:
+            break
+            
+    if len(oi_history) == 2:
+        latest_oi = oi_history[0]
+        oi_change = oi_history[0] - oi_history[1]
+        data_date = dates_found[0]
+        print(f"✅ 計算成功！最新:{latest_oi}, 增減:{oi_change}")
+        return latest_oi, oi_change, data_date
+    elif len(oi_history) == 1:
+        return oi_history[0], 0, dates_found[0]
+    else:
+        return "找不到交易日資料", 0, "未知"
 
+# --- 執行抓取 ---
 net_buy = get_institutional_net_buy()
 latest_oi, oi_change, data_date = get_foreign_tx_oi()
 
+# --- 格式化數據 ---
 def format_num(num, is_amount=False):
-    # 如果傳進來的是文字(例如 X光的除錯訊息)，直接顯示文字
-    if isinstance(num, str): 
-        return {"value": num, "color": "gray"} 
-    if num is None: 
-        return {"value": "--", "color": "gray"}
+    if isinstance(num, str): return {"value": num, "color": "gray"} 
+    if num is None: return {"value": "--", "color": "gray"}
     
     sign = "+" if num > 0 else ""
     color = "red" if num > 0 else "green" 
@@ -93,3 +113,5 @@ output_data = {
 with open("data.js", "w", encoding="utf-8") as f:
     js_content = f"const marketData = {json.dumps(output_data, ensure_ascii=False, indent=4)};"
     f.write(js_content)
+
+print(f"🎉 官方直連更新作業結束！")
