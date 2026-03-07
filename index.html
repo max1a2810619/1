@@ -3,131 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
-    <title>台股終極戰情室 V3.1</title>
+    <title>極簡籌碼監控站</title>
     <style>
-        :root { --bg: #0b0e14; --card: #161b22; --accent: #3b82f6; --red: #f85149; --green: #3fb950; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, sans-serif; margin: 0; padding: 12px; line-height: 1.5; }
-        .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #121212; /* 深色科技背景 */
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .dashboard {
+            width: 100%;
+            max-width: 400px;
+            background: #1e1e1e;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #333;
+        }
+        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+        .date-info { font-size: 12px; color: #888; margin-top: 8px; }
         
-        .header { text-align: center; background: #111827; padding: 20px; border-radius: 12px; border: 2px solid var(--accent); }
-        .ver-tag { font-size: 11px; color: var(--accent); font-weight: bold; margin-top: 8px; display: block; letter-spacing: 1px; }
-
-        .rating-card { background: linear-gradient(#111827, #111827) padding-box, linear-gradient(to right, var(--red), var(--green)) border-box; border: 2px solid transparent; border-radius: 12px; padding: 15px; }
-        .rating-badge { background: var(--red); color: white; font-weight: bold; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .card { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
-        .label { font-size: 11px; color: #8b949e; margin-bottom: 5px; }
-        .value { font-size: 18px; font-weight: bold; }
-        .up { color: var(--red); } .down { color: var(--green); }
-
-        .section-title { font-size: 16px; font-weight: bold; color: var(--accent); margin-top: 10px; border-left: 4px solid var(--accent); padding-left: 10px; }
-        .rank-box { background: var(--card); border-radius: 10px; padding: 12px; border: 1px solid var(--border); }
-        .rank-row { padding: 8px 0; border-bottom: 1px dashed #30363d; display: flex; justify-content: space-between; align-items: center; }
-        .rank-row:last-child { border: none; }
-
-        .pick-card { background: #0d1117; border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden;}
-        .pick-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .pick-name { font-size: 22px; font-weight: bold; color: white; }
-        .potential-tag { background: var(--green); color: white; padding: 3px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; }
-
-        .price-container { display: flex; align-items: center; justify-content: space-around; background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .price-group { text-align: center; }
-        .price-label { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px; }
-        .price-main { font-size: 28px; font-weight: 900; color: #ffffff; }
-        .price-sub { font-size: 22px; font-weight: bold; color: var(--red); }
-
-        .reason-box { font-size: 13px; color: #cbd5e1; border-top: 1px solid #30363d; padding-top: 12px; line-height: 1.6; }
+        .data-card {
+            background: #252525;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .data-card:last-child { margin-bottom: 0; }
+        .label {
+            font-size: 14px;
+            color: #aaaaaa;
+            font-weight: 500;
+        }
+        .value {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: monospace; /* 讓數字對齊更漂亮 */
+        }
+        /* 顏色控制 */
+        .red { color: #ff4d4f; }
+        .green { color: #52c41a; }
+        .gray { color: #888; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="dashboard">
     <div class="header">
-        <div style="font-size: 24px; font-weight: bold; color: #fff;">🦅 終極戰情室 V3.1</div>
-        <span id="data-status" class="ver-tag">載入中...</span>
+        <h1>📊 大盤主力籌碼</h1>
+        <div class="date-info" id="time-display">資料載入中...</div>
     </div>
 
-    <div class="rating-card">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <span style="font-weight: bold;">📈 AI 盤後綜合評述</span>
-            <span id="ai-status" class="rating-badge"></span>
-        </div>
-        <div id="ai-comment" style="font-size: 13px;"></div>
+    <div class="data-card">
+        <div class="label">三大法人買賣超</div>
+        <div class="value" id="val-net-buy">--</div>
     </div>
 
-    <div class="grid" id="data-grid"></div>
+    <div class="data-card">
+        <div class="label">外資未平倉 (口)</div>
+        <div class="value" id="val-oi-total">--</div>
+    </div>
 
-    <div class="section-title">🏆 資金流向排行榜 (細產業)</div>
-    <div class="rank-box" id="rank-box"></div>
-
-    <div class="section-title">🔥 潛力精選股 (低於目標價)</div>
-    <div id="news-picks"></div>
+    <div class="data-card">
+        <div class="label">外資未平倉增減</div>
+        <div class="value" id="val-oi-change">--</div>
+    </div>
 </div>
 
 <script src="data.js"></script>
 
 <script>
-    function renderDashboard() {
-        if (typeof dailyData === 'undefined') {
-            document.getElementById('data-status').innerText = '⚠️ 資料尚未產生，請等待 GitHub Actions 執行完畢';
+    // 渲染資料到網頁上
+    function renderData() {
+        if (typeof marketData === 'undefined') {
+            document.getElementById('time-display').innerText = '⚠️ 等待 GitHub Actions 首次更新資料...';
             return;
         }
 
-        document.getElementById('data-status').innerText = `✅ 最後更新：${dailyData.updateDate} (自動化版)`;
+        document.getElementById('time-display').innerText = 
+            `交易日期: ${marketData.data_date} | 更新於: ${marketData.update_time}`;
 
-        const aiStatusBadge = document.getElementById('ai-status');
-        aiStatusBadge.innerText = dailyData.aiStatusText;
-        aiStatusBadge.style.backgroundColor = dailyData.aiStatusColor;
-        document.getElementById('ai-comment').innerHTML = dailyData.aiCommentText;
+        const elements = [
+            { id: 'val-net-buy', data: marketData.net_buy },
+            { id: 'val-oi-total', data: marketData.oi_total },
+            { id: 'val-oi-change', data: marketData.oi_change }
+        ];
 
-        document.getElementById('data-grid').innerHTML = dailyData.chips.map(chip => `
-            <div class="card">
-                <div class="label">${chip.label}</div>
-                <div class="value ${chip.color}">${chip.value}</div>
-            </div>
-        `).join('');
-
-        document.getElementById('rank-box').innerHTML = dailyData.ranking.map(r => `
-            <div class="rank-row">
-                <div><b>${r.rank}. ${r.sector}</b><div style="font-size:11px;color:#8b949e;">${r.stocks}</div></div>
-                <span class="${r.color}">${r.percent}</span>
-            </div>
-        `).join('');
-
-        document.getElementById('news-picks').innerHTML = dailyData.stockPicks.map(p => {
-            const potential = (((parseFloat(p.target) - parseFloat(p.current)) / parseFloat(p.current)) * 100).toFixed(1);
-            return `
-                <div class="pick-card">
-                    <div class="pick-header">
-                        <span class="pick-name">${p.name}</span>
-                        <span class="potential-tag">補漲空間 +${potential}%</span>
-                    </div>
-                    <div class="price-container">
-                        <div class="price-group">
-                            <span class="price-label">最新收盤價</span>
-                            <span class="price-main">${p.current}</span>
-                        </div>
-                        <div style="font-size: 24px; color: var(--accent);">➔</div>
-                        <div class="price-group">
-                            <span class="price-label">🎯 目標價</span>
-                            <span class="price-sub">${p.target}</span>
-                        </div>
-                    </div>
-                    <div style="font-size: 12px; margin-bottom: 12px; text-align: center; color: #8b949e;">
-                        預估 EPS：<b style="color: #eab308;">${p.eps} 元</b>
-                    </div>
-                    <div class="reason-box"><b>買進原因：</b>${p.reason}</div>
-                </div>
-            `;
-        }).join('');
+        elements.forEach(item => {
+            const el = document.getElementById(item.id);
+            el.innerText = item.data.value;
+            el.className = `value ${item.data.color}`; // 套用紅色或綠色
+        });
     }
 
-    renderDashboard();
+    renderData();
 </script>
+
 </body>
 </html>
