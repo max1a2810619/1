@@ -2,7 +2,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (精準定位模式)...")
+print("啟動極簡籌碼爬蟲 (X光透視模式)...")
 
 def get_institutional_net_buy():
     try:
@@ -26,40 +26,49 @@ def get_foreign_tx_oi():
         if data.get("msg") == "success":
             data_list = data.get("data", [])
             if len(data_list) > 0:
-                # 只挑出包含「外資」的資料
-                foreign_data = [d for d in data_list if "外資" in str(d.get("name", "")) + str(d.get("investor", ""))]
+                # 尋找任何包含「外」或「foreign」的資料 (忽略大小寫)
+                foreign_data = []
+                for d in data_list:
+                    dict_str = str(d).lower()
+                    if "外" in dict_str or "foreign" in dict_str:
+                        foreign_data.append(d)
                 
                 if len(foreign_data) >= 2:
-                    # 確保照日期排序
                     foreign_data = sorted(foreign_data, key=lambda x: x.get('date', ''))
                     latest_item = foreign_data[-1]
                     prev_item = foreign_data[-2]
                     
-                    # 【關鍵修復】只抓取 volume (口數)，絕對不能抓到 amount (金額)
+                    # 找出 key 中包含 volume (口數) 且有 net (淨額) 或 oi (未平倉) 的欄位
                     def get_oi_volume(d):
+                        for k, v in d.items():
+                            if isinstance(v, (int, float)) and 'volume' in k.lower() and ('net' in k.lower() or 'oi' in k.lower()):
+                                return v
                         return d.get('long_short_net_oi_volume', d.get('net_oi_volume', 0))
 
                     latest_oi = get_oi_volume(latest_item)
                     prev_oi = get_oi_volume(prev_item)
                     oi_change = latest_oi - prev_oi
-                    latest_date = latest_item.get("date", "未知日期")
+                    latest_date = latest_item.get("date", "未知")
                     
                     return latest_oi, oi_change, latest_date
                 else:
-                    return "外資資料天數不足", 0, "未知"
+                    # 終極透視：直接把最後一筆資料的「所有欄位名稱」印在網頁上！
+                    debug_keys = list(data_list[-1].keys())
+                    debug_vals = list(data_list[-1].values())
+                    return f"找不到! 欄位有:{debug_keys[:3]}", f"值有:{str(debug_vals[:3])[:10]}", "未知"
             else:
                 return "API無回傳資料", 0, "未知"
         else:
             return f"API拒絕:{data.get('msg')}", 0, "未知"
             
     except Exception as e:
-        return f"程式錯誤", 0, "未知"
+        return f"程式錯誤:{str(e)[:15]}", 0, "未知"
 
 net_buy = get_institutional_net_buy()
 latest_oi, oi_change, data_date = get_foreign_tx_oi()
 
 def format_num(num, is_amount=False):
-    # 如果傳進來的是文字(錯誤訊息)，直接讓網頁顯示文字
+    # 如果傳進來的是文字(例如 X光的除錯訊息)，直接顯示文字
     if isinstance(num, str): 
         return {"value": num, "color": "gray"} 
     if num is None: 
