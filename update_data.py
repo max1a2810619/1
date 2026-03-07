@@ -2,7 +2,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (VIP 金鑰 + 中英雙語防護模式)...")
+print("啟動極簡籌碼爬蟲 (VIP + 終極自算模式)...")
 
 # ==========================================
 # 🔑 你的 FinMind 專屬 VIP 通行證
@@ -38,11 +38,10 @@ def get_foreign_tx_oi():
         if data.get("msg") == "success":
             raw_data = data.get("data", [])
             
-            # 【關鍵突破】中英文一起抓！不管叫「外資」還是「Foreign」都無所遁形
+            # 篩選外資
             foreign_data = []
             for item in raw_data:
-                item_str = str(item).lower()
-                if "外資" in item_str or "foreign" in item_str:
+                if "外資" in str(item).lower() or "foreign" in str(item).lower():
                     foreign_data.append(item)
             
             if len(foreign_data) >= 2:
@@ -50,20 +49,30 @@ def get_foreign_tx_oi():
                 latest = foreign_data[-1]
                 prev = foreign_data[-2]
                 
-                latest_oi = latest.get('long_short_net_oi_volume', latest.get('net_oi_volume', 0))
-                prev_oi = prev.get('long_short_net_oi_volume', prev.get('net_oi_volume', 0))
+                # 【終極破解】不要相信 API 給的淨額！我們自己用「多單 - 空單」算出來！
+                l_long = latest.get('long_oi_volume', 0)
+                l_short = latest.get('short_oi_volume', 0)
+                latest_oi = l_long - l_short  # 算出最新的真實未平倉
+                
+                p_long = prev.get('long_oi_volume', 0)
+                p_short = prev.get('short_oi_volume', 0)
+                prev_oi = p_long - p_short    # 算出昨天的真實未平倉
+                
                 data_date = latest.get('date', '未知日期')
+                
+                # 如果算出來還是 0，代表 FinMind 壞得很徹底，我們就把他傳來的欄位印在網頁上抓包他！
+                if latest_oi == 0:
+                    vols = {k:v for k,v in latest.items() if 'volume' in k.lower()}
+                    return f"系統給了0:{str(vols)[:15]}", 0, data_date
                 
                 return latest_oi, latest_oi - prev_oi, data_date
             else:
-                # 終極除錯：如果真的連英文都不是，直接印出他們現在到底改叫什麼名字！
-                names = list(set([str(item.get("name", item.get("investor", "無名稱"))) for item in raw_data]))
-                return f"名字變了:{','.join(names)[:15]}", 0, "未知"
+                return "資料筆數不足", 0, "未知"
         else:
             return f"金鑰無效或被拒", 0, "未知"
             
     except Exception as e:
-        return "API連線異常", 0, "未知"
+        return f"程式錯誤", 0, "未知"
 
 # --- 執行抓取 ---
 net_buy = get_institutional_net_buy()
@@ -94,4 +103,4 @@ with open("data.js", "w", encoding="utf-8") as f:
     js_content = f"const marketData = {json.dumps(output_data, ensure_ascii=False, indent=4)};"
     f.write(js_content)
 
-print(f"🎉 VIP 更新作業結束！")
+print(f"🎉 更新作業結束！")
