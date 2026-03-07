@@ -2,7 +2,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (偵探模式)...")
+print("啟動極簡籌碼爬蟲 (防禦模式)...")
 
 def get_institutional_net_buy():
     """抓取證交所三大法人買賣超 (換算為億)"""
@@ -28,35 +28,44 @@ def get_foreign_tx_oi():
         res = requests.get(url, params=params, timeout=10)
         data = res.json()
         
-        print(f"🔍 FinMind 回傳狀態 (msg): {data.get('msg')}")
-        
         if data.get("msg") == "success":
             data_list = data.get("data", [])
-            print(f"🔍 總共抓到 {len(data_list)} 筆資料")
             
             if len(data_list) > 0:
-                # 把 API 裡面出現的所有法人名稱印出來檢查
-                names = set([item["name"] for item in data_list])
-                print(f"🔍 資料中包含的法人名稱有: {names}")
+                print(f"🔍 欄位結構長這樣: {data_list[0]}") # 印出真實欄位來確認
                 
-                # 篩選外資資料
-                foreign_data = [item for item in data_list if item["name"] == "外資及陸資"]
+                foreign_data = []
+                for item in data_list:
+                    # 【修復核心】安全地找名稱欄位，不管是 name 還是 investor 通通拿來比對
+                    inv_name = str(item.get("name", "")) + str(item.get("investor", ""))
+                    if "外資" in inv_name:
+                        foreign_data.append(item)
                 
                 if len(foreign_data) >= 2:
-                    foreign_data = sorted(foreign_data, key=lambda x: x['date'])
-                    latest_oi = foreign_data[-1]["net_oi_volume"]
-                    prev_oi = foreign_data[-2]["net_oi_volume"]
-                    data_date = foreign_data[-1]["date"]
+                    # 確保照日期排序
+                    foreign_data = sorted(foreign_data, key=lambda x: x.get('date', ''))
+                    latest_item = foreign_data[-1]
+                    prev_item = foreign_data[-2]
+                    
+                    # 【修復核心】安全地找未平倉數值欄位 (預防未來 FinMind 又改名)
+                    def get_oi(d):
+                        for k in ["net_oi_volume", "open_interest_net", "oi_net", "net_oi"]:
+                            if k in d: return d[k]
+                        return 0
+                        
+                    latest_oi = get_oi(latest_item)
+                    prev_oi = get_oi(prev_item)
+                    data_date = latest_item.get("date", "未知")
                     oi_change = latest_oi - prev_oi
                     
                     print(f"✅ 成功計算外資未平倉! 日期:{data_date}, 最新:{latest_oi}, 增減:{oi_change}")
                     return latest_oi, oi_change, data_date
                 else:
-                    print("❌ 錯誤：外資資料筆數不足 2 筆，無法計算昨天與今天的增減。")
+                    print("❌ 錯誤：找不到足夠的『外資』資料來計算增減")
             else:
                 print("❌ 錯誤：API 雖然回傳 success，但資料陣列是空的！")
         else:
-            print(f"❌ 錯誤：FinMind 拒絕連線，詳細訊息: {data}")
+            print(f"❌ 錯誤：FinMind 拒絕連線: {data}")
             
     except Exception as e:
         print(f"❌ 程式執行發生致命錯誤: {e}")
