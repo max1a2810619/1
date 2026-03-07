@@ -1,72 +1,68 @@
 import requests
 import json
-import csv
-from io import StringIO
 from datetime import datetime, timedelta
 
-print("啟動極簡籌碼爬蟲 (期交所 CSV 無敵直連模式)...")
+print("啟動極簡籌碼爬蟲 (VIP 金鑰直連模式)...")
+
+# ==========================================
+# 🔑 你的 FinMind 專屬 VIP 通行證已安裝完畢！
+# ==========================================
+FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMy0wNyAxNzo0MzozNCIsInVzZXJfaWQiOiJtYXgxYTIiLCJpcCI6IjI3LjUzLjEyMi4yMjUiLCJleHAiOjE3NzM0ODE0MTR9.H65hXmFH8m4jx2_yxP6roSZisZIuaPX0uOl3bWCdE_Q"
 
 def get_institutional_net_buy():
-    """抓取證交所三大法人買賣超 (換算為億)"""
+    """抓取證交所三大法人買賣超 (證交所不會擋國外IP，免金鑰)"""
     try:
         url = "https://www.twse.com.tw/rwd/zh/fund/BFI82U?response=json"
         res = requests.get(url, timeout=10)
         data = res.json()
         total_str = data['data'][-1][3] 
         net_value = float(total_str.replace(',', '')) / 100000000
+        print(f"✅ 三大法人買賣超: {net_value:.2f} 億")
         return round(net_value, 2)
     except Exception as e:
-        return f"法人API錯誤"
+        return "法人連線異常"
 
 def get_foreign_tx_oi():
-    """直接從期交所下載 CSV 報表，最穩定、不被擋"""
+    """使用 VIP 金鑰抓取外資未平倉 (保證不被擋)"""
+    if not FINMIND_TOKEN or "把你的金鑰貼在這裡" in FINMIND_TOKEN:
+        return "請先填寫Token金鑰", 0, "未知"
+        
+    print("使用 VIP 通行證連線 FinMind...")
     try:
-        tw_time = datetime.utcnow() + timedelta(hours=8)
-        # 一次抓過去 15 天的報表，確保一定能拿到最近兩個交易日
-        start_date = (tw_time - timedelta(days=15)).strftime("%Y/%m/%d")
-        end_date = tw_time.strftime("%Y/%m/%d")
-
-        url = "https://www.taifex.com.tw/cht/3/futContractsDateDown"
-        payload = {
-            "queryStartDate": start_date,
-            "queryEndDate": end_date,
-            "commodityId": "TXF" # TXF = 台股期貨 (大台)
+        url = "https://api.finmindtrade.com/api/v4/data"
+        start_date = (datetime.utcnow() - timedelta(days=15)).strftime("%Y-%m-%d")
+        params = {
+            "dataset": "TaiwanFuturesInstitutionalInvestors",
+            "data_id": "TX",
+            "start_date": start_date,
+            "token": FINMIND_TOKEN # 👈 這裡就是突破封鎖的關鍵！
         }
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        res = requests.post(url, data=payload, headers=headers, timeout=10)
+        res = requests.get(url, params=params, timeout=10)
+        data = res.json()
         
-        # 期交所的 CSV 檔案是 Big5 編碼
-        text = res.content.decode('big5', errors='ignore')
-        
-        # 使用 Python 內建的專業 CSV 解析器
-        reader = csv.reader(StringIO(text))
-        
-        foreign_data = []
-        for row in reader:
-            # row[1]是商品, row[2]是身份, row[13]是多空淨額未平倉口數
-            if len(row) >= 14 and "TXF" in row[1] and "外資" in row[2]:
-                try:
-                    date_str = row[0].strip()
-                    # 去除數字裡的千分位逗號並轉成整數
-                    oi = int(row[13].replace(',', '')) 
-                    foreign_data.append((date_str, oi))
-                except:
-                    pass
-                    
-        if len(foreign_data) >= 2:
-            # 確保按日期從小到大排序 (舊 -> 新)
-            foreign_data = sorted(foreign_data, key=lambda x: x[0])
-            latest_date, latest_oi = foreign_data[-1]
-            prev_date, prev_oi = foreign_data[-2]
+        if data.get("msg") == "success":
+            # 篩選外資
+            foreign_data = [item for item in data.get("data", []) if "外資" in str(item.get("name", "")) + str(item.get("investor", ""))]
             
-            # 計算今天與昨天的差額
-            oi_change = latest_oi - prev_oi
-            return latest_oi, oi_change, latest_date
+            if len(foreign_data) >= 2:
+                foreign_data = sorted(foreign_data, key=lambda x: x.get('date', ''))
+                latest = foreign_data[-1]
+                prev = foreign_data[-2]
+                
+                # 安全抓取口數
+                latest_oi = latest.get('long_short_net_oi_volume', latest.get('net_oi_volume', 0))
+                prev_oi = prev.get('long_short_net_oi_volume', prev.get('net_oi_volume', 0))
+                data_date = latest.get('date', '未知日期')
+                
+                print(f"✅ 成功獲取！最新外資未平倉: {latest_oi}")
+                return latest_oi, latest_oi - prev_oi, data_date
+            else:
+                return "資料筆數不足", 0, "未知"
         else:
-            return f"CSV資料不足", 0, "未知"
+            return f"金鑰無效或被拒", 0, "未知"
             
     except Exception as e:
-        return f"CSV解析錯誤", 0, "未知"
+        return "API連線異常", 0, "未知"
 
 # --- 執行抓取 ---
 net_buy = get_institutional_net_buy()
@@ -96,3 +92,5 @@ output_data = {
 with open("data.js", "w", encoding="utf-8") as f:
     js_content = f"const marketData = {json.dumps(output_data, ensure_ascii=False, indent=4)};"
     f.write(js_content)
+
+print(f"🎉 VIP 更新作業結束！")
