@@ -1,12 +1,12 @@
 const marketData = {
-    "update_time": "2026/03/13 17:04",
-    "data_date": "2026-03-13",
+    "update_time": "2026/03/16 18:37",
+    "data_date": "未知",
     "net_buy": {
-        "value": "-672.86 億",
+        "value": "-477.89 億",
         "color": "green"
     },
     "oi_total": {
-        "value": "系統給了0:{'long_deal_vol",
+        "value": "金鑰無效或被拒",
         "color": "gray"
     },
     "oi_change": {
