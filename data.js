@@ -1,9 +1,9 @@
 const marketData = {
-    "update_time": "2026/06/16 20:01",
+    "update_time": "2026/06/17 19:26",
     "data_date": "未知",
     "net_buy": {
-        "value": "+582.74 億",
-        "color": "red"
+        "value": "-255.93 億",
+        "color": "green"
     },
     "oi_total": {
         "value": "金鑰無效或被拒",
